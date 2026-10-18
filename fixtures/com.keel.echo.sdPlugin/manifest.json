@@ -1,0 +1,24 @@
+{
+  "UUID": "com.keel.echo",
+  "SDKVersion": 2,
+  "Author": "Keel",
+  "Name": "Keel Echo",
+  "Description": "Offline host verification plugin — logs willAppear/keyDown/keyUp and setTitle on keyUp.",
+  "Version": "0.1.0",
+  "CodePath": "keel-echo-plugin",
+  "CodePathMac": "keel-echo-plugin",
+  "CodePathWin": "keel-echo-plugin.exe",
+  "OS": [
+    { "Platform": "mac", "MinimumVersion": "10.15" },
+    { "Platform": "windows", "MinimumVersion": "10" },
+    { "Platform": "linux", "MinimumVersion": "5.0" }
+  ],
+  "Software": { "MinimumVersion": "0.1.0" },
+  "Actions": [
+    {
+      "UUID": "com.keel.echo.ping",
+      "Name": "Echo Ping",
+      "Tooltip": "Fire willAppear + keyDown/Up; plugin replies setTitle OK"
+    }
+  ]
+}

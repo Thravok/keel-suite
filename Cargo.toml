@@ -1,0 +1,53 @@
+[package]
+name = "keel"
+version = "0.1.0"
+description = "Offline, low-resource Stream Deck alternative (Rust + egui)"
+edition = "2021"
+license = "MIT"
+readme = "README.md"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+enigo = "0.6"
+open = "5"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+elgato-streamdeck = "0.13"
+parking_lot = "0.12"
+thiserror = "2"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
+directories = "6"
+eframe = { version = "0.31", default-features = false, features = [
+  "accesskit",
+  "default_fonts",
+  "glow",
+  "wayland",
+  "x11",
+] }
+egui = "0.31"
+egui-phosphor = "0.9"
+tray-icon = "0.21"
+crossbeam-channel = "0.5.17"
+tungstenite = "0.26"
+rfd = "0.15"
+zip = { version = "9", default-features = false, features = ["deflate"] }
+
+[[bin]]
+name = "keel"
+path = "src/main.rs"
+
+[[bin]]
+name = "keel-echo-plugin"
+path = "src/bin/keel_echo_plugin.rs"
+
+[[bin]]
+name = "keel-plugin-smoke"
+path = "src/bin/keel_plugin_smoke.rs"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

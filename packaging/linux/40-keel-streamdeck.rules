@@ -1,0 +1,6 @@
+# Allow non-root access to Elgato Stream Deck HID devices (VID 0fd9)
+# Install: sudo cp packaging/linux/40-keel-streamdeck.rules /etc/udev/rules.d/
+#          sudo udevadm control --reload-rules && sudo udevadm trigger
+
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0fd9", MODE="0660", TAG+="uaccess", GROUP="plugdev"
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0fd9", MODE="0660", TAG+="uaccess", GROUP="plugdev"
