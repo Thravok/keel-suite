@@ -231,7 +231,7 @@ fn process_lowcut(cutoff_hz: f32, buf: &mut [f32]) {
     let mut z_r = 0.0f32;
     let mut prev_l = 0.0f32;
     let mut prev_r = 0.0f32;
-    for frame in buf.chunks_exact_mut(2) {
+    for frame in buf.as_chunks_mut::<2>().0 {
         let l = frame[0];
         let r = frame[1];
         z_l = x * (z_l + l - prev_l);
@@ -270,7 +270,7 @@ fn process_compressor(p: &EffectParams, buf: &mut [f32]) {
     let atk = (-1.0 / (0.001 * p.attack_ms * SAMPLE_RATE)).exp();
     let rel = (-1.0 / (0.001 * p.release_ms * SAMPLE_RATE)).exp();
     let makeup = 10f32.powf(p.makeup_gain_db / 20.0);
-    for frame in buf.chunks_exact_mut(2) {
+    for frame in buf.as_chunks_mut::<2>().0 {
         let level = frame[0].abs().max(frame[1].abs());
         env = if level > env {
             atk * env + (1.0 - atk) * level
@@ -290,7 +290,7 @@ fn process_compressor(p: &EffectParams, buf: &mut [f32]) {
 fn process_expander(p: &EffectParams, buf: &mut [f32]) {
     let thresh = 10f32.powf(p.threshold_db / 20.0);
     let floor = 10f32.powf(p.max_reduction_db / 20.0);
-    for frame in buf.chunks_exact_mut(2) {
+    for frame in buf.as_chunks_mut::<2>().0 {
         let level = frame[0].abs().max(frame[1].abs());
         let g = if level < thresh { floor } else { 1.0 };
         frame[0] *= g;
@@ -330,7 +330,7 @@ fn process_voice_tune(p: &EffectParams, buf: &mut [f32]) {
 
 fn process_denoise_substitute(buf: &mut [f32]) {
     // Spectral-gate lite: attenuate very quiet frames (noise floor).
-    for frame in buf.chunks_exact_mut(2) {
+    for frame in buf.as_chunks_mut::<2>().0 {
         let level = frame[0].abs().max(frame[1].abs());
         if level < 0.02 {
             frame[0] *= 0.25;

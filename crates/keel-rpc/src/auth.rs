@@ -2,7 +2,6 @@
 
 use crate::{ORIGIN_KEEL, ORIGIN_STREAMDECK};
 use std::fs;
-use std::io::Write;
 use std::path::Path;
 use thiserror::Error;
 use tungstenite::handshake::server::{ErrorResponse, Request, Response};
@@ -44,6 +43,7 @@ pub fn write_rpc_token(path: &Path, token: &str) -> Result<(), TokenError> {
     }
     #[cfg(unix)]
     {
+        use std::io::Write;
         use std::os::unix::fs::OpenOptionsExt;
         let mut f = fs::OpenOptions::new()
             .write(true)

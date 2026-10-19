@@ -965,9 +965,9 @@ fn draw_deck(
                 let (rect, response) =
                     ui.allocate_exact_size(Vec2::splat(key_size), Sense::click());
                 let stroke = if is_sel {
-                    Stroke::new(2.0, Color32::from_rgb(232, 168, 78))
+                    Stroke::new(2.0_f32, Color32::from_rgb(232, 168, 78))
                 } else {
-                    Stroke::new(1.0, Color32::from_rgb(60, 66, 74))
+                    Stroke::new(1.0_f32, Color32::from_rgb(60, 66, 74))
                 };
                 ui.painter().rect(
                     rect,
@@ -1037,9 +1037,9 @@ fn draw_deck(
                     let size = Vec2::splat(52.0);
                     let (rect, response) = ui.allocate_exact_size(size, Sense::click());
                     let stroke = if is_sel {
-                        Stroke::new(2.0, Color32::from_rgb(232, 168, 78))
+                        Stroke::new(2.0_f32, Color32::from_rgb(232, 168, 78))
                     } else {
-                        Stroke::new(1.5, Color32::from_rgb(80, 88, 100))
+                        Stroke::new(1.5_f32, Color32::from_rgb(80, 88, 100))
                     };
                     ui.painter()
                         .circle(rect.center(), 24.0, Color32::from_rgb(40, 44, 52), stroke);
