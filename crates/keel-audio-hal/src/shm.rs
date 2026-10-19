@@ -7,9 +7,9 @@
 //! f32 ring planes: MAX_DEVICES * CHANNELS * RING_FRAMES
 //! ```
 
-use crate::{CHANNELS, MAGIC, MAX_DEVICES, RING_FRAMES};
 #[cfg(unix)]
 use crate::SHM_NAME;
+use crate::{CHANNELS, MAGIC, MAX_DEVICES, RING_FRAMES};
 use std::io;
 use std::sync::atomic::{AtomicU32, Ordering};
 
