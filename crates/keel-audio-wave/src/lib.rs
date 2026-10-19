@@ -350,6 +350,7 @@ fn discover_coreaudio_wave_macos() -> Vec<WaveDeviceInfo> {
     discover_coreaudio_wave_via_cpal()
 }
 
+#[cfg(target_os = "macos")]
 fn discover_coreaudio_wave_via_cpal() -> Vec<WaveDeviceInfo> {
     use cpal::traits::{DeviceTrait, HostTrait};
 

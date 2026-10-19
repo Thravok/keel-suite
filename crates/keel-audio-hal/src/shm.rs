@@ -7,7 +7,9 @@
 //! f32 ring planes: MAX_DEVICES * CHANNELS * RING_FRAMES
 //! ```
 
-use crate::{CHANNELS, MAGIC, MAX_DEVICES, RING_FRAMES, SHM_NAME};
+use crate::{CHANNELS, MAGIC, MAX_DEVICES, RING_FRAMES};
+#[cfg(unix)]
+use crate::SHM_NAME;
 use std::io;
 use std::sync::atomic::{AtomicU32, Ordering};
 
@@ -47,6 +49,8 @@ pub fn default_shm_size() -> usize {
 /// Userspace mapping of the HAL ring.
 pub struct ShmRing {
     ptr: *mut u8,
+    /// Mapping length (used by Drop on unix; kept for layout parity on other targets).
+    #[allow(dead_code)]
     len: usize,
     #[cfg(unix)]
     fd: i32,
@@ -109,6 +113,7 @@ impl ShmRing {
         ))
     }
 
+    #[cfg(unix)]
     fn ensure_header(&self, device_count: u32, sample_rate: u32) {
         let hdr = self.header();
         if hdr.magic.load(Ordering::Acquire) != MAGIC {
