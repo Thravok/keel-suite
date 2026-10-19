@@ -3,6 +3,7 @@
 //! This is the app-side AU rack — not WavePluginRack (Lewitt USB insert stream).
 
 use serde::{Deserialize, Serialize};
+#[cfg(target_os = "macos")]
 use tracing::debug;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

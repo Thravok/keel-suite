@@ -37,6 +37,7 @@ fn handle_client(
     token: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let expected = token.to_string();
+    #[allow(clippy::result_large_err)] // tungstenite handshake ErrorResponse
     let callback = move |req: &tungstenite::handshake::server::Request, response| {
         authorize_ws_upgrade(req, response, &expected)
     };
