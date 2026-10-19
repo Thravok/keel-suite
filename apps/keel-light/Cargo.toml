@@ -1,0 +1,31 @@
+[package]
+name = "keel-light"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Offline Elgato Control Center alternative — USB Key Lights (Qt + Rust)"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+parking_lot = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tungstenite = { workspace = true }
+keel-rpc = { path = "../../crates/keel-rpc" }
+keel-store = { path = "../../crates/keel-store" }
+keel-light-usb = { path = "../../crates/keel-light-usb" }
+
+[lib]
+name = "keel_light"
+path = "src/lib.rs"
+crate-type = ["lib", "staticlib", "cdylib"]
+
+[[bin]]
+name = "keel-light"
+path = "src/main.rs"
+
+[[bin]]
+name = "keel-light-rpc-smoke"
+path = "src/bin/rpc_smoke.rs"

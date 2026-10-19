@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  rust:
+    name: Rust (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential pkg-config \
+            libhidapi-hidraw-dev libudev-dev \
+            libasound2-dev \
+            libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+            libxkbcommon-dev libssl-dev \
+            libwayland-dev libegl1-mesa-dev
+
+      - name: Install Windows deps (hidapi)
+        if: runner.os == 'Windows'
+        run: choco install pkgconfiglite -y
+        continue-on-error: true
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: cargo test
+        run: cargo test --workspace
+
+      - name: Plugin smoke
+        run: cargo run -p keel-deck --bin keel-plugin-smoke --release
+        continue-on-error: true
+
+      - name: Light RPC smoke
+        run: cargo run -p keel-light --bin keel-light-rpc-smoke --release
+
+      - name: Audio RPC smoke (macOS)
+        if: runner.os == 'macOS'
+        run: cargo run -p keel-audio --bin keel-audio-rpc-smoke --release
+
+  qt-ui:
+    name: Qt UI (${{ matrix.app }} / ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            app: audio
+          - os: macos-latest
+            app: light
+          - os: ubuntu-latest
+            app: light
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt (macOS)
+        if: runner.os == 'macOS'
+        run: brew install qt@6 cmake ninja
+
+      - name: Install Qt (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            qt6-base-dev qt6-websockets-dev \
+            cmake ninja-build g++
+
+      - name: Build UI
+        run: |
+          if [[ "${{ runner.os }}" == "macOS" ]]; then
+            export CMAKE_PREFIX_PATH="$(brew --prefix qt@6)"
+          else
+            # Debian/Ubuntu Qt6 packages
+            export CMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH:-/usr}"
+          fi
+          apps/keel-${{ matrix.app }}/ui/build.sh
+        shell: bash

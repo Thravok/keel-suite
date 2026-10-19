@@ -1,0 +1,14 @@
+[package]
+name = "keel-audio-hal"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "IPC client for Keel Core Audio HAL virtual devices"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+parking_lot = { workspace = true }
+tracing = { workspace = true }
+libc = "0.2"

@@ -1,0 +1,39 @@
+[package]
+name = "keel-audio"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Offline Wave Link alternative — Qt UI + Rust engine (macOS first)"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+thiserror = { workspace = true }
+parking_lot = { workspace = true }
+chrono = { workspace = true }
+directories = { workspace = true }
+crossbeam-channel = { workspace = true }
+tungstenite = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+keel-rpc = { path = "../../crates/keel-rpc" }
+keel-store = { path = "../../crates/keel-store" }
+keel-audio-engine = { path = "../../crates/keel-audio-engine" }
+keel-audio-fx = { path = "../../crates/keel-audio-fx" }
+keel-audio-wave = { path = "../../crates/keel-audio-wave" }
+keel-audio-hal = { path = "../../crates/keel-audio-hal" }
+cpal = "0.15"
+
+[lib]
+name = "keel_audio"
+path = "src/lib.rs"
+crate-type = ["lib", "staticlib", "cdylib"]
+
+[[bin]]
+name = "keel-audio"
+path = "src/main.rs"
+
+[[bin]]
+name = "keel-audio-rpc-smoke"
+path = "src/bin/rpc_smoke.rs"

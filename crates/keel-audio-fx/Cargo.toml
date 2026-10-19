@@ -1,0 +1,14 @@
+[package]
+name = "keel-audio-fx"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Built-in DSP + AU host surface for keel-audio"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+thiserror = { workspace = true }
+parking_lot = { workspace = true }
+tracing = { workspace = true }

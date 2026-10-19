@@ -1,0 +1,57 @@
+[package]
+name = "keel-deck"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Offline, low-resource Stream Deck alternative (Rust + egui)"
+readme = "../../README.md"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+enigo = "0.6"
+open = "5"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+ab_glyph = "0.2"
+epaint_default_fonts = "0.31"
+elgato-streamdeck = "0.13"
+parking_lot = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+directories = { workspace = true }
+eframe = { version = "0.31", default-features = false, features = [
+  "accesskit",
+  "default_fonts",
+  "glow",
+  "wayland",
+  "x11",
+] }
+egui = "0.31"
+egui-phosphor = "0.9"
+tray-icon = "0.21"
+crossbeam-channel = { workspace = true }
+tungstenite = { workspace = true }
+rfd = "0.15"
+zip = { version = "9", default-features = false, features = ["deflate"] }
+keel-rpc = { path = "../../crates/keel-rpc" }
+keel-store = { path = "../../crates/keel-store" }
+
+[[bin]]
+name = "keel"
+path = "src/main.rs"
+
+[[bin]]
+name = "keel-echo-plugin"
+path = "src/bin/keel_echo_plugin.rs"
+
+[[bin]]
+name = "keel-plugin-smoke"
+path = "src/bin/keel_plugin_smoke.rs"
+
+[lib]
+name = "keel"
+path = "src/lib.rs"
+
+[build-dependencies]
+cc = "1"

@@ -4,3 +4,14 @@
 .idea/
 .vscode/
 *.swp
+apps/keel-audio/ui/build/
+apps/keel-light/ui/build/
+dist/
+packaging/out/
+packaging/sparkle/Sparkle.framework/
+packaging/sparkle/bin/
+packaging/linux/tools/
+Cargo.toml.bak
+
+scratch/
+.scratch/

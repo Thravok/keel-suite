@@ -1,0 +1,259 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version without v prefix (must match workspace.package.version)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: ver
+        shell: bash
+        run: |
+          source packaging/common/version.sh
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="$(keel_tag_version "${{ github.ref }}")"
+          fi
+          EXPECTED="$(keel_version)"
+          if [[ "$VERSION" != "$EXPECTED" ]]; then
+            echo "Tag/version $VERSION does not match workspace.package.version $EXPECTED" >&2
+            echo "Run scripts/bump-version.sh $VERSION first." >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  macos:
+    needs: version
+    runs-on: macos-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      UNIVERSAL: "1"
+      SIGN: "1"
+      APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+      APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+      SPARKLE_PUBLIC_ED_KEY: ${{ secrets.SPARKLE_PUBLIC_ED_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install Qt + tools
+        run: brew install qt@6 cmake ninja create-dmg || brew install qt@6 cmake ninja
+
+      - name: Build macOS release DMGs
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          export CMAKE_PREFIX_PATH="$(brew --prefix qt@6)"
+          export OUT_DIR="${{ github.workspace }}/dist/macos"
+          mkdir -p "$OUT_DIR"
+          packaging/macos/build-release.sh
+          packaging/sparkle/generate-appcast.sh \
+            --dir "$OUT_DIR" \
+            --version "$VERSION" \
+            --out "$OUT_DIR/appcast.xml"
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: |
+            dist/macos/*.dmg
+            dist/macos/appcast.xml
+
+  windows:
+    needs: version
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      WINDOWS_CERTIFICATE_PFX: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
+      WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install NSIS + Qt
+        shell: pwsh
+        run: |
+          choco install nsis -y
+          # aqtinstall for Qt 6
+          pip install aqtinstall
+          aqt install-qt windows desktop 6.7.3 win64_msvc2019_64 -O "$env:RUNNER_TEMP\Qt"
+          echo "CMAKE_PREFIX_PATH=$env:RUNNER_TEMP\Qt\6.7.3\msvc2019_64" >> $env:GITHUB_ENV
+          echo "QT_DIR=$env:RUNNER_TEMP\Qt\6.7.3\msvc2019_64" >> $env:GITHUB_ENV
+          echo "$env:RUNNER_TEMP\Qt\6.7.3\msvc2019_64\bin" >> $env:GITHUB_PATH
+          echo "C:\Program Files (x86)\NSIS" >> $env:GITHUB_PATH
+
+      - name: Build Rust (deck + light)
+        run: cargo build --release -p keel-deck -p keel-light
+
+      - name: Build light Qt UI
+        shell: pwsh
+        run: |
+          $build = "apps/keel-light/ui/build"
+          New-Item -ItemType Directory -Force -Path $build | Out-Null
+          Push-Location $build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$env:CMAKE_PREFIX_PATH"
+          cmake --build . --config Release --parallel
+          Pop-Location
+          # Normalize exe location
+          $ui = Get-ChildItem -Recurse -Filter keel-light-ui.exe apps/keel-light/ui/build | Select-Object -First 1
+          Copy-Item $ui.FullName "target/release/keel-light-ui.exe" -Force
+
+      - name: Bundle installers
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist/windows | Out-Null
+          .\packaging\windows\bundle.ps1 -App deck -Version $env:VERSION -BinDir target/release -OutDir dist/windows
+          .\packaging\windows\bundle.ps1 -App light -Version $env:VERSION -BinDir target/release -OutDir dist/windows
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/windows/*.exe
+
+  linux:
+    needs: version
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential pkg-config \
+            libhidapi-hidraw-dev libudev-dev \
+            libasound2-dev \
+            libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+            libxkbcommon-dev libssl-dev \
+            libwayland-dev libegl1-mesa-dev \
+            qt6-base-dev qt6-websockets-dev \
+            cmake ninja-build fuse libfuse2
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Fetch linuxdeploy
+        run: packaging/linux/fetch-linuxdeploy.sh
+
+      - name: Build Rust
+        run: cargo build --release -p keel-deck -p keel-light
+
+      - name: Build light Qt UI
+        run: apps/keel-light/ui/build.sh
+        env:
+          CMAKE_PREFIX_PATH: /usr
+
+      - name: Stage binaries
+        run: |
+          mkdir -p dist/bin
+          cp target/release/keel dist/bin/
+          cp target/release/keel-light dist/bin/
+          cp apps/keel-light/ui/build/keel-light-ui dist/bin/ || true
+
+      - name: Bundle AppImages
+        run: |
+          mkdir -p dist/linux
+          packaging/linux/bundle-appimage.sh --app deck --version "$VERSION" --bin-dir dist/bin --out-dir dist/linux
+          packaging/linux/bundle-appimage.sh --app light --version "$VERSION" --bin-dir dist/bin --out-dir dist/linux
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            dist/linux/*.AppImage
+            dist/linux/*.tar.gz
+
+  publish:
+    needs: [version, macos, windows, linux]
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+      GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+      GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/all
+
+      - name: Flatten + checksums
+        shell: bash
+        run: |
+          mkdir -p dist/release
+          find dist/all -type f \( -name '*.dmg' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.tar.gz' \) -exec cp {} dist/release/ \;
+          cd dist/release
+          sha256sum * > SHA256SUMS || shasum -a 256 * > SHA256SUMS
+
+      - name: Prefer macOS-signed appcast
+        shell: bash
+        run: |
+          if [[ -f dist/all/macos/appcast.xml ]]; then
+            cp dist/all/macos/appcast.xml dist/release/appcast.xml
+          else
+            packaging/sparkle/generate-appcast.sh \
+              --dir dist/release \
+              --version "$VERSION" \
+              --out dist/release/appcast.xml
+          fi
+
+      - name: GPG-sign checksums (optional)
+        shell: bash
+        run: |
+          if [[ -z "${GPG_PRIVATE_KEY:-}" ]]; then
+            echo "GPG_PRIVATE_KEY not set — skipping"
+            exit 0
+          fi
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          echo "$GPG_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --detach-sign --armor dist/release/SHA256SUMS
+          mv dist/release/SHA256SUMS.asc dist/release/SHA256SUMS.asc 2>/dev/null || true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.version.outputs.version }}
+          name: Keel Suite v${{ needs.version.outputs.version }}
+          generate_release_notes: true
+          files: |
+            dist/release/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,17 @@
+[package]
+name = "keel-audio-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Real-time Wave Link–style mixer graph (48 kHz stereo)"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+thiserror = { workspace = true }
+parking_lot = { workspace = true }
+chrono = { workspace = true }
+keel-audio-fx = { path = "../keel-audio-fx" }
+keel-store = { path = "../keel-store" }
+tracing = { workspace = true }

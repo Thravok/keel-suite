@@ -1,0 +1,13 @@
+[package]
+name = "keel-rpc"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared JSON-RPC types and localhost WS client for keel suite apps"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+tungstenite = { workspace = true }

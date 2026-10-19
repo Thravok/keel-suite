@@ -1,0 +1,16 @@
+[package]
+name = "keel-audio-wave"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Elgato Wave USB/HID control (WaveAPI-compatible)"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+parking_lot = { workspace = true }
+tracing = { workspace = true }
+hidapi = "2"
+cpal = "0.15"
+rusb = "0.9"
