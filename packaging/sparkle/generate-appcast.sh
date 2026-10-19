@@ -9,6 +9,7 @@ VERSION=""
 OUT="appcast.xml"
 TITLE="Keel Suite"
 BASE_URL="${SPARKLE_BASE_URL:-https://github.com/Thravok/keel-suite/releases/download}"
+SPARKLE_ACCOUNT="${SPARKLE_ACCOUNT:-keel-suite}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -30,9 +31,23 @@ PRIVATE_KEY_FILE="${SPARKLE_PRIVATE_KEY_FILE:-}"
 
 if [[ -n "${SPARKLE_PRIVATE_KEY:-}" && -z "$PRIVATE_KEY_FILE" ]]; then
   PRIVATE_KEY_FILE="$(mktemp)"
-  printf '%s\n' "$SPARKLE_PRIVATE_KEY" > "$PRIVATE_KEY_FILE"
+  # Private key file is a single base64 line (no trailing commentary)
+  printf '%s' "$SPARKLE_PRIVATE_KEY" | tr -d '\n' > "$PRIVATE_KEY_FILE"
   trap 'rm -f "$PRIVATE_KEY_FILE"' EXIT
 fi
+
+sign_dmg() {
+  local dmg="$1"
+  if [[ ! -x "$SIGN_UPDATE" ]]; then
+    return 1
+  fi
+  if [[ -n "$PRIVATE_KEY_FILE" && -f "$PRIVATE_KEY_FILE" ]]; then
+    "$SIGN_UPDATE" --ed-key-file "$PRIVATE_KEY_FILE" -p "$dmg" 2>/dev/null
+  else
+    # Prefer Keychain account on developer Macs
+    "$SIGN_UPDATE" --account "$SPARKLE_ACCOUNT" -p "$dmg" 2>/dev/null
+  fi
+}
 
 ITEMS=""
 shopt -s nullglob
@@ -41,14 +56,16 @@ for dmg in "$DIR"/Keel*-macos*.dmg; do
   length="$(wc -c < "$dmg" | tr -d ' ')"
   url="${BASE_URL}/v${VERSION}/${name}"
   sig=""
-  if [[ -x "$SIGN_UPDATE" && -n "$PRIVATE_KEY_FILE" ]]; then
-    sig="$("$SIGN_UPDATE" "$dmg" "$PRIVATE_KEY_FILE" 2>/dev/null | tr -d '\n' || true)"
-  elif [[ -x "$SIGN_UPDATE" && -n "${SPARKLE_PRIVATE_KEY:-}" ]]; then
-    sig="$("$SIGN_UPDATE" "$dmg" 2>/dev/null | tr -d '\n' || true)"
+  if sig="$(sign_dmg "$dmg")"; then
+    sig="$(echo "$sig" | tr -d '[:space:]')"
+  else
+    sig=""
   fi
   enc_attrs="url=\"${url}\" length=\"${length}\" type=\"application/octet-stream\""
   if [[ -n "$sig" ]]; then
     enc_attrs+=" sparkle:edSignature=\"${sig}\""
+  else
+    echo "warning: no Sparkle signature for $name (set SPARKLE_PRIVATE_KEY or use Keychain account $SPARKLE_ACCOUNT)" >&2
   fi
   ITEMS+="
     <item>
